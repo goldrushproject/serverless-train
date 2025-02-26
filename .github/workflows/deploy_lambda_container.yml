@@ -42,7 +42,34 @@ jobs:
       env:
         REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         REPOSITORY: ${{ env.AWS_ECR_REPO }}
-        IMAGE_TAG: ${{ github.sha }}
+        IMAGE_TAG: latest
       run: |
         docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG ./app
         docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+    - name: Check if Lambda function exists
+      id: check_lambda
+      run: |
+        if aws lambda get-function --function-name ${{ env.LAMBDA_FUNCTION_NAME }}; then
+          echo "::set-output name=lambda_exists::true"
+        else
+          echo "::set-output name=lambda_exists::false"
+        fi
+
+    - name: Create or Update Lambda function
+      run: |
+        IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.AWS_ECR_REPO }}:latest
+        if [ "${{ steps.check_lambda.outputs.lambda_exists }}" == "false" ]; then
+          echo "Creating Lambda function..."
+          aws lambda create-function \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --package-type Image \
+            --code ImageUri=$IMAGE_URI \
+            --role ${{ env.AWS_ROLE_TO_ASSUME }}
+        else
+          echo "Updating Lambda function..."
+          aws lambda update-function-code \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --image-uri $IMAGE_URI \
+            --publish
+        fi
