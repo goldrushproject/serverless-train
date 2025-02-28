@@ -1,5 +1,7 @@
 import unittest
 import json
+import base64
+import pickle
 from app.app import lambda_handler
 
 class TestApp(unittest.TestCase):
@@ -14,6 +16,12 @@ class TestApp(unittest.TestCase):
         
         self.assertEqual(response["statusCode"], 200)
         self.assertIn("Hello from Lambda!", response_body["message"])
+        
+        # Extract and write the model to a file
+        model_serialized = response_body['model']
+        model = pickle.loads(base64.b64decode(model_serialized))
+        with open('trained_model.pkl', 'wb') as f:
+            pickle.dump(model, f)
 
 if __name__ == "__main__":
     unittest.main()
