@@ -4,20 +4,16 @@ from app.app import lambda_handler
 
 class TestApp(unittest.TestCase):
     def test_app(self):
-        with open('./tests/assessment_test_data.json') as f:
-            test_data = json.load(f)
-        
-        event = {
-            "max_time_window": 2,
-            "ticker_symbol": "AAPL",
-            "interval": "1h",
-            "test_data": test_data
-        }
-        print(event)
+        with open('./tests/assessment_test_event.json') as f:
+            test_event = json.load(f)
         context = {}
-        response = lambda_handler(event, context)
+        response = lambda_handler(test_event, context)
+        response_body = json.loads(response['body'])
+        
+        print("Predicted Prices:", response_body['predicted_prices'])
+        
         self.assertEqual(response["statusCode"], 200)
-        self.assertIn("volatility", response["body"])
+        self.assertIn("Hello from Lambda!", response_body["message"])
 
 if __name__ == "__main__":
     unittest.main()
