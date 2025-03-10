@@ -12,10 +12,9 @@ class TestApp(unittest.TestCase):
         response = lambda_handler(test_event, context)
         response_body = json.loads(response['body'])
         
-        print("Predicted Prices:", response_body['predicted_prices'])
+        print(response_body)
         
         self.assertEqual(response["statusCode"], 200)
-        self.assertIn("Hello from Lambda!", response_body["message"])
         
         # Extract and write the model to a file
         model_serialized = response_body['model']

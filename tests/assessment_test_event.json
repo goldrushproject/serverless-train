@@ -1,9 +1,10 @@
 {
-    "message": "Hello from Lambda! Received ticker AAPL with a time window of 2 and interval 1m.",
-    "max_time_window": 2,
+    "user": "tester",
+    "model_id": "10086",
     "ticker_symbol": "AAPL",
+    "max_time_window": 2,
     "interval": "1m",
-    "stock_data": [
+    "data": [
         {
             "Close": 239.3450012207,
             "High": 240.125,

@@ -6,16 +6,13 @@ import pickle
 import base64
 
 def lambda_handler(event, context):
-
     # Extract parameters
-    max_time_window = event.get("max_time_window", 1)
+    user = event.get("user", "default")
+    model_id = event.get("model_id", "114514")
     ticker_symbol = event.get("ticker_symbol", "AAPL")
+    max_time_window = event.get("max_time_window", 1)
     interval = event.get("interval", "1h")
-    stock_data = event.get("stock_data", {})
-
-    print(f"Max Time Window: {max_time_window}")
-    print(f"Ticker Symbol: {ticker_symbol}")
-    print(f"Interval: {interval}")
+    stock_data = event.get("data", {})
 
     # Load test data into DataFrame
     stock_data_df = pd.DataFrame(stock_data)
@@ -30,26 +27,25 @@ def lambda_handler(event, context):
     model.fit(X, y)
 
     # Predict future stock prices
-    future_times = pd.DataFrame(np.arange(len(stock_data_df), len(stock_data_df) + 5), columns=['Time'])
-    future_prices = model.predict(future_times)
+    sample_future_times = pd.DataFrame(np.arange(len(stock_data_df), len(stock_data_df) + 5), columns=['Time'])
+    sample_future_prices = model.predict(sample_future_times)
 
-    # Serialize the model
+    # Serialize the model and set path
     model_serialized = base64.b64encode(pickle.dumps(model)).decode('utf-8')
-
-    # Example processing
-    message = f"Hello from Lambda! Received ticker {ticker_symbol} with a time window of {max_time_window} and interval {interval}."
+    model_path = f'models/{user}/{model_id}.pkl'
 
     # Return a response
     return {
         "statusCode": 200,
         "body": json.dumps(
             {
-                "message": message,
-                "max_time_window": max_time_window,
+                "user": user,
                 "ticker_symbol": ticker_symbol,
+                "max_time_window": max_time_window,
                 "interval": interval,
-                "predicted_prices": future_prices.tolist(),
-                "model": model_serialized
+                "predicted_prices": sample_future_prices.tolist(),
+                "model": model_serialized,
+                "model_path": model_path
             }
         ),
     }
