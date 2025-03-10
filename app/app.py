@@ -32,7 +32,7 @@ def lambda_handler(event, context):
 
     # Serialize the model and set path
     model_serialized = base64.b64encode(pickle.dumps(model)).decode('utf-8')
-    model_path = f'models/{user}/{model_id}.pkl'
+    model_path = f'models/{user}/{ticker_symbol}/{model_id}.pkl'
 
     # Return a response
     return {
