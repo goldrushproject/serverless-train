@@ -138,7 +138,7 @@ def lambda_handler(event, context):
                     "interval": interval,
                     "best_mae": study.best_value,
                     "key": model_path,  # Path to the saved model
-                    "model": model_serialized,  # Serialized model
+                    "model": None,  # Serialized model
                     "best_params": study.best_params,  # Return best parameters found by Optuna
                     "sample_prediction": forecast.tolist(),  # Sample prediction
                 }
