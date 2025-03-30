@@ -10,7 +10,7 @@ from optuna.pruners import MedianPruner
 from optuna.samplers import TPESampler
 
 # Define the Optuna objective function
-def objective(trial, train_y, train_X, test_y, test_X):
+def objective(trial, train_y, test_y):
     try:
         # Suggest hyperparameters for SARIMAX
         p = trial.suggest_int('p', 0, 2)  # AR order (p)
@@ -25,10 +25,9 @@ def objective(trial, train_y, train_X, test_y, test_X):
         order = (p, d, q)
         seasonal_order = (seasonal_p, seasonal_d, seasonal_q, seasonal_s)
         
-        # Fit the SARIMAX model
+        # Fit the SARIMAX model without exogenous variables
         sarimax_model = SARIMAX(
             train_y,                    # Endogenous variable (target)
-            exog=train_X,               # Exogenous variables (predictors)
             order=order,                # AR, I, MA order (p, d, q)
             seasonal_order=seasonal_order,  # Seasonal components (p, d, q, s)
             enforce_stationarity=False,
@@ -40,7 +39,7 @@ def objective(trial, train_y, train_X, test_y, test_X):
 
         # Predict for the test set
         n_periods = len(test_y)
-        sample_future_prices = sarimax_model_fitted.predict(start=len(train_y), end=len(train_y) + n_periods - 1, exog=test_X)
+        sample_future_prices = sarimax_model_fitted.predict(start=len(train_y), end=len(train_y) + n_periods - 1)
 
         # Calculate Mean Absolute Error (MAE) for this model
         mae = mean_absolute_error(test_y, sample_future_prices)
@@ -69,15 +68,12 @@ def lambda_handler(event, context):
         if 'Close' not in stock_data_df:
             raise ValueError("Missing 'Close' column in stock data")
 
-        # Prepare the target variable (y) and exogenous variables (X)
+        # Prepare the target variable (y)
         y = stock_data_df['Close']
-        X = stock_data_df[['Close_rolling_mean_24', 'Close_rolling_std_24', 'returns', 
-                            'rolling_volatility', 'day_of_week', 'hour_of_day']]  # Add more features if necessary
 
         # Train-test split (80% for training, 20% for testing)
         train_size = int(len(y) * 0.8)
         train_y, test_y = y[:train_size], y[train_size:]
-        train_X, test_X = X[:train_size], X[train_size:]
 
         # Create the Optuna study to optimize the objective function
         # Use TPESampler to improve convergence speed
@@ -89,7 +85,7 @@ def lambda_handler(event, context):
         study = optuna.create_study(direction='minimize', sampler=sampler, pruner=pruner)  # Minimize MAE
         
         # Run the optimization with the fast-converging strategy
-        study.optimize(lambda trial: objective(trial, train_y, train_X, test_y, test_X), n_trials=10)  # n trials (can be adjusted)
+        study.optimize(lambda trial: objective(trial, train_y, test_y), n_trials=10)  # n trials (can be adjusted)
 
         # Print best parameters found by Optuna
         print(f"Best parameters: {study.best_params}")
@@ -106,7 +102,6 @@ def lambda_handler(event, context):
         
         sarimax_model = SARIMAX(
             train_y,                    
-            exog=train_X,               
             order=order,                
             seasonal_order=seasonal_order,
             enforce_stationarity=False,
@@ -122,7 +117,7 @@ def lambda_handler(event, context):
 
         # Sample prediction: Forecast the next 'n' steps
         forecast_steps = 10  # Predict the next 10 time steps (can be adjusted)
-        forecast = sarimax_model_fitted.predict(start=len(train_y), end=len(train_y) + forecast_steps - 1, exog=test_X[:forecast_steps])
+        forecast = sarimax_model_fitted.predict(start=len(train_y), end=len(train_y) + forecast_steps - 1)
 
         # Return the response with the best model and evaluation metrics
         return {
