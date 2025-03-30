@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import pickle
 import base64
+import boto3
 import optuna
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import mean_absolute_error  # For model evaluation
@@ -111,9 +112,16 @@ def lambda_handler(event, context):
         # Fit the best model
         sarimax_model_fitted = sarimax_model.fit(disp=False)
 
-        # Serialize the best model and set path
+        # Serialize the best model and save in S3
         model_serialized = base64.b64encode(pickle.dumps(sarimax_model_fitted)).decode('utf-8')
+        
+        # Define S3 path
+        s3_bucket = "goldrush-main-12705"
         model_path = f'models/{user}/{ticker_symbol}/{model_id}.pkl'
+
+        # Upload model to S3
+        s3_client = boto3.client('s3')
+        s3_client.put_object(Bucket=s3_bucket, Key=model_path, Body=model_serialized.encode())
 
         # Sample prediction: Forecast the next 'n' steps
         forecast_steps = 10  # Predict the next 10 time steps (can be adjusted)
@@ -129,8 +137,8 @@ def lambda_handler(event, context):
                     "max_time_window": max_time_window,
                     "interval": interval,
                     "best_mae": study.best_value,
-                    "model": model_serialized,
-                    "model_path": model_path,
+                    "key": model_path,  # Path to the saved model
+                    "model": model_serialized,  # Serialized model
                     "best_params": study.best_params,  # Return best parameters found by Optuna
                     "sample_prediction": forecast.tolist(),  # Sample prediction
                 }

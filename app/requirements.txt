@@ -3,3 +3,4 @@ statsmodels
 scikit-learn
 optuna
 numpy
+boto3
