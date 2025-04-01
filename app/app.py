@@ -58,7 +58,7 @@ def lambda_handler(event, context):
         user = event.get("user", "default")
         model_id = event.get("model_id", "114514")
         ticker_symbol = event.get("ticker_symbol", "AAPL")
-        max_time_window = event.get("max_time_window", 1)
+        sample_time_window = event.get("sample_time_window", 1)
         interval = event.get("interval", "1h")
         stock_data = event.get("data", {})
 
@@ -134,7 +134,7 @@ def lambda_handler(event, context):
                 {
                     "user": user,
                     "ticker_symbol": ticker_symbol,
-                    "max_time_window": max_time_window,
+                    "sample_time_window": sample_time_window,
                     "interval": interval,
                     "best_mae": study.best_value,
                     "key": model_path,  # Path to the saved model
